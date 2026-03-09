@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  # Run on PR lifecycle events and on direct pushes to main, release/*.
+  # This setup avoids unnecessary workflow runs on events like 
+  # labeling or assigning reviewers, which don't change the code 
+  # and don't require a rebuild.
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, release/*]
+  push:
+    branches: [main, release/*]
+
+jobs:
+  # Stage 1: code quality gate.
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Run static analysis (Checkstyle)
+        shell: bash
+        run: |
+          mkdir -p target/ci-logs
+          set -o pipefail
+          mvn -B -DskipTests checkstyle:check | tee target/ci-logs/static-analysis.log
+
+      - name: Upload static-analysis logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-logs
+          path: target/ci-logs/**
+          if-no-files-found: warn
+
+  # Stage 2: compile/package artifact only if static analysis passed.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: static-analysis
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build project (includes unit tests)
+        shell: bash
+        run: |
+          mkdir -p target/ci-logs
+          set -o pipefail
+          mvn -B -Dcheckstyle.skip=true package | tee target/ci-logs/build.log
+
+      - name: Upload build artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: target/*.jar
+          if-no-files-found: warn
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: target/surefire-reports/**
+          if-no-files-found: warn
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            target/site/jacoco/**
+            target/jacoco.exec
+          if-no-files-found: warn
+
+      - name: Print coverage summary in build logs
+        if: always()
+        shell: bash
+        run: |
+          # Parse JaCoCo CSV and print coverage to job logs + Actions summary.
+          CSV_FILE="target/site/jacoco/jacoco.csv"
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "Coverage report was not generated."
+            echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
+            echo "Coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # JaCoCo CSV columns: $8=LINE_MISSED, $9=LINE_COVERED
+          read -r COVERED MISSED < <(awk -F, 'NR>1 {covered+=$9; missed+=$8} END {print covered+0, missed+0}' "$CSV_FILE")
+          TOTAL=$((COVERED + MISSED))
+          if [ "$TOTAL" -eq 0 ]; then
+            PERCENT="0.00"
+          else
+            PERCENT=$(awk -v c="$COVERED" -v t="$TOTAL" 'BEGIN {printf "%.2f", (c/t)*100}')
+          fi
+
+          echo "Coverage: ${PERCENT}% (covered: ${COVERED}, missed: ${MISSED})"
+
+          {
+            echo "## Coverage"
+            echo "Line coverage: ${PERCENT}%"
+            echo "Covered lines: ${COVERED}"
+            echo "Missed lines: ${MISSED}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: target/ci-logs/**
+          if-no-files-found: warn
