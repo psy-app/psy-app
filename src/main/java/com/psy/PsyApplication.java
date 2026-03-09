@@ -77,7 +77,8 @@ public class PsyApplication implements CommandLineRunner {
     }
 
     private void addScheduleFromCsv() {
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("psychology_sessions.csv")))) {
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getClass()
+        .getClassLoader().getResourceAsStream("psychology_sessions.csv")))) {
             List<String[]> records = reader.readAll();
             
             records.remove(0); // Видалити перший рядок з назвами стовпців
