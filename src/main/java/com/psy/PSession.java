@@ -21,10 +21,10 @@ public class PSession {
     private String clinicPhone;
     private String sessionDate;
 
-
-    public PSession( String psychologistName, String clientName, String sessionDate, String sessionPackage, String sessionTopic, String MeetingPlatform, String subscription, String psyExperience, String clinicAddress, String clinicPhone) {
-        
-        
+    public PSession( String psychologistName, String clientName,
+         String sessionDate, String sessionPackage, String sessionTopic,
+          String MeetingPlatform, String subscription, String psyExperience,
+           String clinicAddress, String clinicPhone) {
         this.psychologistName = psychologistName;
         this.clientName = clientName;
         this.sessionDate = sessionDate;
