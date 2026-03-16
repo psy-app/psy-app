@@ -47,8 +47,9 @@ public class PsyApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         Scanner scanner = new Scanner(System.in);
+        boolean running = true;
 
-        while (true) {
+        while (running) {
             System.out.println("1. Додати розклад з CSV-файлу");
             System.out.println("2. Подивитись розклад");
             System.out.println("3. Видалити розклад");
@@ -68,7 +69,8 @@ public class PsyApplication implements CommandLineRunner {
                     dropAllSchedules();
                     break;
                 case 4:
-                    System.exit(0);
+                    running = false;
+                    System.out.println("Вихід з програми");
                     break;
                 default:
                     System.out.println("Номер команди некоректний. Спробуй ще.");
