@@ -4,7 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /* 
-  Колекція, в якій зберігатися документ баз даних MongoDB, що представляє сутність рядку з таблиці з розкладом коледжу.
+  Колекція, в якій зберігатися документ баз даних MongoDB, що представляє сутність рядку з таблиці.
 */
 @Document(collection = "psy-collection")
 public class PSession {
