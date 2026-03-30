@@ -4,7 +4,7 @@
   <groupId>com.psy</groupId>
   <artifactId>psy</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>psy-sample</name>
   <url>http://maven.apache.org</url>
 
