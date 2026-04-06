@@ -38,6 +38,87 @@ public class PSession {
         
 
     }
+    
+    public String getPsychologistName() {
+        return psychologistName;
+    }
+
+    public void setPsychologistName(String psychologistName) {
+        this.psychologistName = psychologistName;
+    }
+
+    public String getClientName() {
+        return clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
+    }
+
+    public String getSessionDate() {
+        return sessionDate;
+    }
+
+    public void setSessionDate(String sessionDate) {
+        this.sessionDate = sessionDate;
+    }
+
+    public String getSessionPackage() {
+        return sessionPackage;
+    }
+
+    public void setSessionPackage(String sessionPackage) {
+        this.sessionPackage = sessionPackage;
+    }
+
+    public String getSessionTopic() {
+        return sessionTopic;
+    }
+
+    public void setSessionTopic(String sessionTopic) {
+        this.sessionTopic = sessionTopic;
+    }
+
+    public String getMeetingPlatform() {
+        return MeetingPlatform;
+    }
+
+    public void setMeetingPlatform(String MeetingPlatform) {
+        this.MeetingPlatform = MeetingPlatform;
+    }
+
+    public String getSubscription() {
+        return subscription;
+    }
+
+    public void setSubscription(String subscription) {
+        this.subscription = subscription;
+    }
+
+    public String getPsyExperience() {
+        return psyExperience;
+    }
+
+    public void setPsyExperience(String psyExperience) {
+        this.psyExperience = psyExperience;
+    }
+
+    public String getClinicAddress() {
+        return clinicAddress;
+    }
+
+    public void setClinicAddress(String clinicAddress) {
+        this.clinicAddress = clinicAddress;
+    }
+
+    public String getClinicPhone() {
+        return clinicPhone;
+    }
+
+    public void setClinicPhone(String clinicPhone) {
+        this.clinicPhone = clinicPhone;
+    }
+
 
     public String toString() {
         return "PSession {" +
