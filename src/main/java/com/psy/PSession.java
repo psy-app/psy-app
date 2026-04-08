@@ -23,14 +23,14 @@ public class PSession {
 
     public PSession( String psychologistName, String clientName,
          String sessionDate, String sessionPackage, String sessionTopic,
-          String MeetingPlatform, String subscription, String psyExperience,
+          String meetingPlatform, String subscription, String psyExperience,
            String clinicAddress, String clinicPhone) {
         this.psychologistName = psychologistName;
         this.clientName = clientName;
         this.sessionDate = sessionDate;
         this.sessionPackage = sessionPackage;
         this.sessionTopic = sessionTopic;
-        this.MeetingPlatform = MeetingPlatform;
+        this.MeetingPlatform = meetingPlatform;
         this.subscription = subscription;
         this.psyExperience = psyExperience;
         this.clinicAddress = clinicAddress;
@@ -40,6 +40,11 @@ public class PSession {
     }
 
     public PSession() {
+        
+    }
+    
+    public String getId() {
+    return id;
     }
 
     public String getPsychologistName() {
