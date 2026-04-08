@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 /**
  * Web-Додаток для редагування бази даних розкладу прийому на сеанс у психолога.
@@ -34,7 +33,11 @@ import java.util.Scanner;
  */
 @SpringBootApplication
 public class PsyApplication{
+    @Autowired
+        private PsyRepository psyRepository;
 
+    public static void main(String[] args) {
+        SpringApplication.run(PsyApplication.class, args);
     }
 
     private void addScheduleFromCsv() {
@@ -62,7 +65,7 @@ public class PsyApplication{
                 scheduleList.add(schedule);
             }
             
-            PsyRepository.saveAll(scheduleList);
+            psyRepository.saveAll(scheduleList);
             System.out.println(scheduleList.size() + " документів з рядками з розкладу завантажено з CSV.");
         } catch (Exception e) {
             e.printStackTrace();
@@ -71,7 +74,7 @@ public class PsyApplication{
     }
 
     private void viewAllSchedules() {
-        List<PSession> schedules = PsyRepository.findAll();
+        List<PSession> schedules = psyRepository.findAll();
         if (schedules.isEmpty()) {
             System.out.println("Документи з рядками розкладу не знайдено.");
         } else {
@@ -81,7 +84,7 @@ public class PsyApplication{
     }
 
     private void dropAllSchedules() {
-        PsyRepository.deleteAll();
+        psyRepository.deleteAll();
         System.out.println("Розклад видалено.");
     }
 }

@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 /**
- * Веб-контролер для перегляду розкладу коледжу, додавання нових занять та видалення записів.
+ * Веб-контролер для перегляду розкладу, додавання нових занять та видалення записів.
  */
 @Controller
 public class ScheduleController {
 
-    private final ScheduleRepository scheduleRepository;
+    private final PsyRepository psyRepository;
 
     public ScheduleController(PsyRepository psyRepository) {
         this.psyRepository = psyRepository;
@@ -41,7 +41,7 @@ public class ScheduleController {
 
     @PostMapping("/delete/{id}")
     public String deleteSchedule(@PathVariable String id) {
-        scheduleRepository.deleteById(id);
+        psyRepository.deleteById(id);
         return "redirect:/";
     }
 }

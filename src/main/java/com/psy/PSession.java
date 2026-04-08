@@ -38,7 +38,10 @@ public class PSession {
         
 
     }
-    
+
+    public PSession() {
+    }
+
     public String getPsychologistName() {
         return psychologistName;
     }
@@ -118,7 +121,6 @@ public class PSession {
     public void setClinicPhone(String clinicPhone) {
         this.clinicPhone = clinicPhone;
     }
-
 
     public String toString() {
         return "PSession {" +
