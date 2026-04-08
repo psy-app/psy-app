@@ -1,0 +1,47 @@
+package com.psy;
+
+import java.util.List;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+
+/**
+ * Веб-контролер для перегляду розкладу, додавання нових занять та видалення записів.
+ */
+@Controller
+public class ScheduleController {
+
+    private final PsyRepository psyRepository;
+
+    public ScheduleController(PsyRepository psyRepository) {
+        this.psyRepository = psyRepository;
+    }
+
+    @GetMapping("/")
+    public String viewSchedule(Model model) {
+        List<PSession> schedules = psyRepository.findAll();
+        model.addAttribute("schedules", schedules);
+        return "schedule";
+    }
+
+    @GetMapping("/add")
+    public String showAddForm(Model model) {
+        model.addAttribute("schedule", new PSession());
+        return "add";
+    }
+
+    @PostMapping("/add")
+    public String addSchedule(@ModelAttribute PSession schedule) {
+        psyRepository.save(schedule);
+        return "redirect:/";
+    }
+
+    @PostMapping("/delete/{id}")
+    public String deleteSchedule(@PathVariable String id) {
+        psyRepository.deleteById(id);
+        return "redirect:/";
+    }
+}
