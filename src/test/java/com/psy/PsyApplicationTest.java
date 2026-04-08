@@ -98,7 +98,7 @@ class PsyApplicationTest {
     private static PsyApplication appWithRepository(PsyRepository repository) throws Exception {
         PsyApplication app = new PsyApplication();
         // Встановлюємо mock-репозиторій у private поле
-        Field field = PsyApplication.class.getDeclaredField("PsyRepository");
+        Field field = PsyApplication.class.getDeclaredField("psyRepository");
         field.setAccessible(true);
         field.set(app, repository);
         return app;
