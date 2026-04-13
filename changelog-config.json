@@ -1,0 +1,29 @@
+{
+    "categories": [
+        {
+            "title": "## 🚀 Нові функції",
+            "labels": ["Feature Request", "Enhancement"]
+        },
+        {
+            "title": "## 🐛 Виправлення",
+            "labels": ["Bug"]
+        },
+        {
+            "title": "## ⚙️ CI/CD",
+            "labels": ["Continuous Integration", "Continuous Delivery", "Continuous Deployment"]
+        },
+        {
+            "title": "## ✅ Тестування",
+            "labels": ["Chore"]
+        },
+        {
+            "title": "## 🔨 Інші зміни",
+            "labels": ["Task"]
+        }
+    ],
+    "template": "${{CHANGELOG}}\n\n## 🔗 Корисні посилання\n- [Інструкція з інсталяції](README.md)\n- [GitHub Releases](https://github.com/${{OWNER}}/${{REPOSITORY}}/releases)",
+    "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
+    "empty_template": "- Немає змін в цій категорії",
+    "sort": "ASC",
+    "base_branches": ["main"]
+}

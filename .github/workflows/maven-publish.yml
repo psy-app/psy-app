@@ -1,0 +1,41 @@
+# Workflow для публікації пакетів Maven в GitHub Packages
+# GITHUB_ACTOR та GITHUB_TOKEN автоматично надаються GitHub Actions:
+# - GITHUB_ACTOR: ім'я користувача, який запустив workflow
+# - GITHUB_TOKEN: автоматично генерується для кожного запуску workflow
+#   і має необхідні права для публікації пакетів
+name: Maven Package
+
+# Запускається як частина CI pipeline або вручну
+on:
+  workflow_call:
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Надання необхідних дозволів для публікації пакетів
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    # Крок 1: Отримання коду з репозиторію
+    - uses: actions/checkout@v4
+
+    # Крок 2: Налаштування JDK 17 з кешуванням залежностей Maven
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+
+    # Крок 3: Публікація артефактів в GitHub Packages
+    - name: Publish to GitHub Packages
+      run: mvn --batch-mode deploy --file pom.xml -DskipTests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

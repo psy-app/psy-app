@@ -1,0 +1,78 @@
+# Workflow для автоматичного створення релізів
+name: Maven Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release version (e.g., 0.2.0)'
+        required: true
+      developmentVersion:
+        description: 'Next development version (e.g., 0.3.0-SNAPSHOT)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Configure Git user
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+      - name: Prepare Release
+        run: |
+          mvn release:prepare \
+            -DreleaseVersion=${{ github.event.inputs.releaseVersion }} \
+            -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }} \
+            -DtagNameFormat="@{project.version}" \
+            -B
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Perform Release
+        run: mvn release:perform
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Генерація changelog
+      - name: Generate Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          toTag: ${{ github.event.inputs.releaseVersion }}
+          configuration: ".github/changelog-config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.event.inputs.releaseVersion }}
+          name: College Schedule Application v${{ github.event.inputs.releaseVersion }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: true
+          prerelease: true
+          files: |
+            target/*.jar
+            README.md
