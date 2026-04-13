@@ -131,3 +131,8 @@ jobs:
           name: build-logs
           path: target/ci-logs/**
           if-no-files-found: warn
+  publish:
+    name: Publish Package
+    needs: build
+    uses: ./.github/workflows/maven-publish.yml
+    secrets: inherit
