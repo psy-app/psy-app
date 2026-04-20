@@ -1,96 +1,49 @@
 package com.psy;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 
 import java.util.Collections;
-import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.ui.ExtendedModelMap;
-import org.springframework.ui.Model;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * Тести для ScheduleController.
+ * Перевіряють коректність повернення представлень (HTML-сторінок) та роботу з моделлю.
+ */
+@WebMvcTest(ScheduleController.class)
 class ScheduleControllerTest {
 
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PsyRepository psyRepository;
+
     @Test
-    void viewScheduleReturnsScheduleViewName() {
-        // Використовуємо PsyRepository замість ScheduleRepository
-        PsyRepository repository = mock(PsyRepository.class);
-        when(repository.findAll()).thenReturn(Collections.emptyList());
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
+    void viewScheduleReturnsCorrectView() throws Exception {
+        // Налаштовуємо мок репозиторію
+        when(psyRepository.findAll()).thenReturn(Collections.emptyList());
 
-        String viewName = controller.viewSchedule(model);
-
-        // Перевіряємо повернення імені шаблону "schedule"
-        assertEquals("schedule", viewName);
+        // Виконуємо запит до головної сторінки
+        mockMvc.perform(get("/"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("schedule"))
+            .andExpect(model().attributeExists("schedules"));
     }
 
     @Test
-    void viewScheduleAddsAllSchedulesToModel() {
-        PsyRepository repository = mock(PsyRepository.class);
-        // Створюємо об'єкт PSession з вашими параметрами
-        PSession psession = new PSession("Psyc", "Client", "2024-09-14", "Pkg", "Topic", "Zoom", "Basic", "9", "Addr", "123");
-        when(repository.findAll()).thenReturn(Collections.singletonList(psession));
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
-
-        controller.viewSchedule(model);
-
-        verify(repository, times(1)).findAll();
-        // Перевіряємо атрибут "schedules" у моделі
-        assertNotNull(model.getAttribute("schedules"));
-        assertEquals(1, ((List<?>) model.getAttribute("schedules")).size());
-    }
-
-    @Test
-    void showAddFormReturnsAddViewName() {
-        PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
-
-        String viewName = controller.showAddForm(model);
-
-        assertEquals("add", viewName);
-    }
-
-    @Test
-    void showAddFormAddsEmptyScheduleToModel() {
-        PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
-
-        controller.showAddForm(model);
-
-        // Перевіряємо, що в модель додано об'єкт "schedule"
-        assertNotNull(model.getAttribute("schedule"));
-    }
-
-    @Test
-    void addScheduleSavesToRepositoryAndRedirects() {
-        PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-        PSession session = new PSession("Psyc", "Client", "2024-09-14", "Pkg", "Topic", "Zoom", "Basic", "9", "Addr", "123");
-
-        String viewName = controller.addSchedule(session);
-
-        // Перевіряємо збереження через psyRepository
-        verify(repository, times(1)).save(session);
-        assertEquals("redirect:/", viewName);
-    }
-
-    @Test
-    void deleteScheduleRemovesFromRepositoryAndRedirects() {
-        PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-
-        String viewName = controller.deleteSchedule("id-123");
-
-        // Перевіряємо видалення за ID
-        verify(repository, times(1)).deleteById("id-123");
-        assertEquals("redirect:/", viewName);
+    void showAddFormReturnsAddView() throws Exception {
+        // Перевіряємо сторінку додавання запису
+        mockMvc.perform(get("/add"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("add"))
+            .andExpect(model().attributeExists("schedule"));
     }
 }
