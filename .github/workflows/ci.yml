@@ -131,6 +131,184 @@ jobs:
           name: build-logs
           path: target/ci-logs/**
           if-no-files-found: warn
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: static-analysis
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          mkdir -p target/ci-logs
+          set -o pipefail
+          mvn -B -Dcheckstyle.skip=true -DskipIntegrationTests=true test | tee target/ci-logs/unit-tests.log
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: target/surefire-reports/**
+          if-no-files-found: warn
+
+      - name: Upload unit coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-reports
+          path: |
+            target/site/jacoco/**
+            target/jacoco.exec
+          if-no-files-found: warn
+
+      - name: Print unit coverage summary
+        if: always()
+        shell: bash
+        run: |
+          CSV_FILE="target/site/jacoco/jacoco.csv"
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "Unit coverage report was not generated."
+            echo "## Unit Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+            echo "Coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          read -r COVERED MISSED < <(awk -F, 'NR>1 {covered+=$9; missed+=$8} END {print covered+0, missed+0}' "$CSV_FILE")
+          TOTAL=$((COVERED + MISSED))
+          if [ "$TOTAL" -eq 0 ]; then
+            PERCENT="0.00"
+          else
+            PERCENT=$(awk -v c="$COVERED" -v t="$TOTAL" 'BEGIN {printf "%.2f", (c/t)*100}')
+          fi
+
+          echo "Unit coverage: ${PERCENT}% (covered: ${COVERED}, missed: ${MISSED})"
+
+          {
+            echo "## Unit Test Coverage"
+            echo "Line coverage: ${PERCENT}%"
+            echo "Covered lines: ${COVERED}"
+            echo "Missed lines: ${MISSED}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload unit test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-logs
+          path: target/ci-logs/**
+          if-no-files-found: warn
+  # Етап 3: виконати інтеграційні тести, лише якщо юніт-тести пройшли успішно.
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Run integration tests
+        shell: bash
+        run: |
+          mkdir -p target/ci-logs
+          set -o pipefail
+          mvn -B -Dcheckstyle.skip=true -DskipUnitTests=true verify | tee target/ci-logs/integration-tests.log
+
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: target/failsafe-reports/**
+          if-no-files-found: warn
+
+      - name: Upload integration coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage-reports
+          path: |
+            target/site/jacoco-integration-tests/**
+            target/jacoco-integration-tests.exec
+          if-no-files-found: warn
+
+      - name: Print integration coverage summary
+        if: always()
+        shell: bash
+        run: |
+          CSV_FILE="target/site/jacoco-integration-tests/jacoco.csv"
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "Integration coverage report was not generated."
+            echo "## Integration Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+            echo "Coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          print_class_coverage() {
+            local full_class_name="$1"
+            local package_path class_name covered missed total percent
+
+            package_path="${full_class_name%.*}"
+            class_name="${full_class_name##*.}"
+
+            read -r covered missed < <(awk -F, -v target_package="$package_path" -v target_class="$class_name" '
+              NR>1 && $2 == target_package && $3 == target_class {
+                covered += $9
+                missed += $8
+              }
+              END {print covered+0, missed+0}
+            ' "$CSV_FILE")
+
+            total=$((covered + missed))
+            if [ "$total" -eq 0 ]; then
+              percent="0.00"
+            else
+              percent=$(awk -v c="$covered" -v t="$total" 'BEGIN {printf "%.2f", (c/t)*100}')
+            fi
+
+            echo "${full_class_name} integration coverage: ${percent}% (covered: ${covered}, missed: ${missed})"
+
+            {
+              echo "### ${full_class_name}"
+              echo "Line coverage: ${percent}%"
+              echo "Covered lines: ${covered}"
+              echo "Missed lines: ${missed}"
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          echo "## Integration Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+          print_class_coverage "com.college.Schedule"
+          print_class_coverage "com.college.ScheduleController"
+
+      - name: Upload integration logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-logs
+          path: |
+            target/ci-logs/**
+            target/failsafe-reports/**
+            target/site/jacoco-integration-tests/**
+          if-no-files-found: warn    
   # Stage 3: публікація пакету після успішної збірки.       
   publish:
     name: Publish Package

@@ -1,96 +1,114 @@
 package com.psy;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.ui.ExtendedModelMap;
-import org.springframework.ui.Model;
 
-class ScheduleControllerTest {
+class PsyApplicationTest {
+    private final OutputStreamState outputStreamState = new OutputStreamState();
+
+    @AfterEach
+    void restoreSystemStreams() {
+        outputStreamState.restore();
+    }
 
     @Test
-    void viewScheduleReturnsScheduleViewName() {
-        // Використовуємо PsyRepository замість ScheduleRepository
+    void viewAllSchedulesPrintsNotFoundForEmptyRepository() throws Exception {
+        // Створюємо мок репозиторію та імітуємо порожній список
         PsyRepository repository = mock(PsyRepository.class);
         when(repository.findAll()).thenReturn(Collections.emptyList());
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
+        PsyApplication app = appWithRepository(repository);
 
-        String viewName = controller.viewSchedule(model);
+        // Викликаємо приватний метод через рефлексію
+        invokePrivate(app, "viewAllSchedules");
 
-        // Перевіряємо повернення імені шаблону "schedule"
-        assertEquals("schedule", viewName);
-    }
-
-    @Test
-    void viewScheduleAddsAllSchedulesToModel() {
-        PsyRepository repository = mock(PsyRepository.class);
-        // Створюємо об'єкт PSession з вашими параметрами
-        PSession psession = new PSession("Psyc", "Client", "2024-09-14", "Pkg", "Topic", "Zoom", "Basic", "9", "Addr", "123");
-        when(repository.findAll()).thenReturn(Collections.singletonList(psession));
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
-
-        controller.viewSchedule(model);
-
+        // Перевіряємо повідомлення в консолі
+        assertTrue(outputStreamState.value().contains("не знайдено"));
         verify(repository, times(1)).findAll();
-        // Перевіряємо атрибут "schedules" у моделі
-        assertNotNull(model.getAttribute("schedules"));
-        assertEquals(1, ((List<?>) model.getAttribute("schedules")).size());
     }
 
     @Test
-    void showAddFormReturnsAddViewName() {
+    void viewAllSchedulesPrintsRowsWhenRepositoryHasData() throws Exception {
         PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
+        // Створюємо тестовий об'єкт сесії
+        PSession session = new PSession(
+            "Дмитро Сидоренко", "Олена Коваленко", "2024-05-20", 
+            "Стандарт", "Консультація", "Zoom", "Так", 
+            "5 років", "вул. Шевченка, 10", "+380501112233"
+        );
+        when(repository.findAll()).thenReturn(Collections.singletonList(session));
+        PsyApplication app = appWithRepository(repository);
 
-        String viewName = controller.showAddForm(model);
+        invokePrivate(app, "viewAllSchedules");
 
-        assertEquals("add", viewName);
+        String output = outputStreamState.value();
+        assertTrue(output.contains("Знайдено 1"));
+        assertTrue(output.contains("PSession {"));
+        verify(repository, times(1)).findAll();
     }
 
     @Test
-    void showAddFormAddsEmptyScheduleToModel() {
+    void dropAllSchedulesDeletesDataAndPrintsMessage() throws Exception {
         PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-        Model model = new ExtendedModelMap();
+        PsyApplication app = appWithRepository(repository);
 
-        controller.showAddForm(model);
+        invokePrivate(app, "dropAllSchedules");
 
-        // Перевіряємо, що в модель додано об'єкт "schedule"
-        assertNotNull(model.getAttribute("schedule"));
+        verify(repository, times(1)).deleteAll();
+        assertTrue(outputStreamState.value().contains("видалено"));
     }
 
-    @Test
-    void addScheduleSavesToRepositoryAndRedirects() {
-        PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-        PSession session = new PSession("Psyc", "Client", "2024-09-14", "Pkg", "Topic", "Zoom", "Basic", "9", "Addr", "123");
-
-        String viewName = controller.addSchedule(session);
-
-        // Перевіряємо збереження через psyRepository
-        verify(repository, times(1)).save(session);
-        assertEquals("redirect:/", viewName);
+    // Допоміжний метод для впровадження мок-репозиторію в PsyApplication
+    private static PsyApplication appWithRepository(PsyRepository repository) throws Exception {
+        PsyApplication app = new PsyApplication();
+        Field field = PsyApplication.class.getDeclaredField("psyRepository");
+        field.setAccessible(true);
+        field.set(app, repository);
+        return app;
     }
 
-    @Test
-    void deleteScheduleRemovesFromRepositoryAndRedirects() {
-        PsyRepository repository = mock(PsyRepository.class);
-        ScheduleController controller = new ScheduleController(repository);
-
-        String viewName = controller.deleteSchedule("id-123");
-
-        // Перевіряємо видалення за ID
-        verify(repository, times(1)).deleteById("id-123");
-        assertEquals("redirect:/", viewName);
+    // Допоміжний метод для виклику приватних методів
+    private static void invokePrivate(PsyApplication app, String methodName) throws Exception {
+        Method method = PsyApplication.class.getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        method.invoke(app);
     }
+
+    // Клас для перехоплення System.out
+    private static final class OutputStreamState {
+    private final PrintStream original = System.out;
+    private final ByteArrayOutputStream captured = new ByteArrayOutputStream();
+
+    private OutputStreamState() {
+        try {
+            // Використовуємо рядок "UTF-8" замість об'єкта Charset для кращої сумісності
+            System.setOut(new PrintStream(captured, true, "UTF-8"));
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String value() {
+        try {
+            return captured.toString("UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return captured.toString();
+        }
+    }
+
+    private void restore() {
+        System.setOut(original);
+    }
+}
 }
