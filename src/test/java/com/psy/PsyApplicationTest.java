@@ -1,20 +1,15 @@
 package com.psy;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
-import java.util.List;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,30 +20,6 @@ class PsyApplicationTest {
     @AfterEach
     void restoreSystemStreams() {
         outputStreamState.restore();
-    }
-
-    @Test
-    void addScheduleFromCsvReplacesExistingDataAndSavesParsedRows() throws Exception {
-        PsyRepository repository = mock(PsyRepository.class);
-        PsyApplication app = appWithRepository(repository);
-
-        invokePrivate(app, "addScheduleFromCsv");
-
-        // У вашому addScheduleFromCsv немає deleteAll(), тому перевіряємо тільки saveAll
-        verify(repository, times(1)).saveAll(anyList());
-        assertTrue(outputStreamState.value().contains("CSV"));
-    }
-
-    @Test
-    void addScheduleFromCsvPrintsFailureMessageWhenRepositoryThrows() throws Exception {
-        PsyRepository repository = mock(PsyRepository.class);
-        // Імітуємо помилку при збереженні
-        doThrow(new RuntimeException("repository unavailable")).when(repository).saveAll(anyList());
-        PsyApplication app = appWithRepository(repository);
-
-        invokePrivate(app, "addScheduleFromCsv");
-
-        assertTrue(outputStreamState.value().contains("Не вдалось"));
     }
 
     @Test

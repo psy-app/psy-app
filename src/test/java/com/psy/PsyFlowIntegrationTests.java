@@ -24,7 +24,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers(disabledWithoutDocker = true) // Вимагає запущеного Docker Desktop
 class PsyFlowIntegrationTests {
 
     @Container
@@ -39,6 +39,7 @@ class PsyFlowIntegrationTests {
 
     @DynamicPropertySource
     static void configureMongo(DynamicPropertyRegistry registry) {
+        // Динамічно налаштовує URI підключення до контейнера MongoDB
         registry.add("spring.data.mongodb.uri", MONGO_DB_CONTAINER::getReplicaSetUrl);
     }
 
@@ -50,45 +51,45 @@ class PsyFlowIntegrationTests {
     @Test
     void addEndpointPersistsSessionToMongo() throws Exception {
         mockMvc.perform(post("/add")
-                .param("clientName", "Олександр")
-                .param("psychologistName", "Марія")
-                .param("sessionDate", "2024-05-15")
-                .param("sessionPackage", "Індивідуальний")
-                .param("sessionTopic", "Особистий розвиток")
-                .param("meetingPlatform", "Zoom")
-                .param("subscription", "Преміум")
-                .param("psyExperience", "10 років")
-                .param("clinicAddress", "вул. Хрещатик, 1")
-                .param("clinicPhone", "0441234567"))
+                .param("psychologistName", "Дмитро Сидоренко")
+                .param("clientName", "Олена Коваленко")
+                .param("sessionDate", "2024-05-20")
+                .param("sessionPackage", "Стандарт")
+                .param("sessionTopic", "Консультація")
+                .param("MeetingPlatform", "Zoom") // Згідно з полем у PSession.java
+                .param("subscription", "Так")
+                .param("psyExperience", "5 років")
+                .param("clinicAddress", "вул. Шевченка, 10")
+                .param("clinicPhone", "+380501112233"))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/"));
 
         assertThat(psyRepository.findAll())
             .hasSize(1)
-            .extracting(PSession::getSessionTopic)
-            .containsExactly("Особистий розвиток");
+            .extracting(PSession::getClientName)
+            .containsExactly("Олена Коваленко");
     }
 
     @Test
     void savedSessionsAreRenderedOnTheMainPage() throws Exception {
         psyRepository.save(new PSession(
-            "Марія",
-            "Олександр",
-            "2024-05-15",
-            "Індивідуальний",
-            "Особистий розвиток",
+            "Дмитро Сидоренко",
+            "Олена Коваленко",
+            "2024-05-20",
+            "Стандарт",
+            "Консультація",
             "Zoom",
-            "Преміум",
-            "10 років",
-            "вул. Хрещатик, 1",
-            "0441234567"
+            "Так",
+            "5 років",
+            "вул. Шевченка, 10",
+            "+380501112233"
         ));
 
         mockMvc.perform(get("/"))
             .andExpect(status().isOk())
-            .andExpect(view().name("schedule"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Олександр")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Особистий розвиток")));
+            .andExpect(view().name("schedule")) // Згідно з контролером
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Олена Коваленко")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Консультація")));
     }
 
     @Test
@@ -96,22 +97,22 @@ class PsyFlowIntegrationTests {
         mockMvc.perform(get("/add"))
             .andExpect(status().isOk())
             .andExpect(view().name("add"))
-            .andExpect(model().attributeExists("schedule"));
+            .andExpect(model().attributeExists("schedule")); // Згідно з методом showAddForm
     }
 
     @Test
     void deleteEndpointRemovesPersistedSessionFromMongo() throws Exception {
         PSession saved = psyRepository.save(new PSession(
-            "Марія",
-            "Олександр",
-            "2024-05-15",
-            "Індивідуальний",
-            "Особистий розвиток",
-            "Zoom",
-            "Преміум",
+            "Дмитро Сидоренко",
+            "Олена Коваленко",
+            "2024-05-20",
+            "Стандарт",
+            "Депресія",
+            "Google Meet",
+            "Ні",
             "10 років",
-            "вул. Хрещатик, 1",
-            "0441234567"
+            "вул. Лесі Українки, 5",
+            "+380679998877"
         ));
 
         mockMvc.perform(post("/delete/{id}", saved.getId()))

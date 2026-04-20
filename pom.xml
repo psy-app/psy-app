@@ -1,52 +1,38 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.psy</groupId>
-  <artifactId>psy</artifactId>
+  <artifactId>psy-app</artifactId>
   <packaging>jar</packaging>
-  <version>0.2.0-SNAPSHOT</version>
-  <name>psy-sample</name>
+  <version>0.3.0-SNAPSHOT</version>
+  <name>psy-app</name>
   <url>http://maven.apache.org</url>
 
   <properties>
-    <!-- Build / resources encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.scm.id>github</project.scm.id>
+    <testcontainers.version>1.20.6</testcontainers.version>
+    <skipUnitTests>false</skipUnitTests>
+    <skipIntegrationTests>false</skipIntegrationTests>
   </properties>
 
-   <!-- SCM Information -->
   <scm>
-    <connection>scm:git:https://github.com/psy-app/psy-app</connection>
-    <developerConnection>scm:git:https://github.com/psy-app/psy-app.git</developerConnection>
-    <url>https://github.com/psy-app/psy-app</url>
+    <connection>scm:git:https://github.com/Ваш-Репозиторій/psy-app.git</connection>
+    <developerConnection>scm:git:https://github.com/Ваш-Репозиторій/psy-app.git</developerConnection>
+    <url>https://github.com/Ваш-Репозиторій/psy-app</url>
     <tag>HEAD</tag>
   </scm>
-
-  <dependencies>
-
-    <!-- Unit test framework used by `mvn test` -->
+  
+  <dependencies>  
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.2</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <version>2.5.4</version>
       <scope>test</scope>
-      </dependency>
-      <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <version>5.10.2</version>
-      <scope>test</scope>
-  </dependency>
-  <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>5.11.0</version>
-      <scope>test</scope>
-  </dependency>
-
+    </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -63,24 +49,29 @@
         <version>2.5.4</version>
     </dependency>
     <dependency>
-        <groupId>com.opencsv</groupId>
-        <artifactId>opencsv</artifactId>
-        <version>5.5.2</version>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
     </dependency>
-
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>mongodb</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <distributionManagement>
     <repository>
       <id>github</id>
       <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/psy-app/psy-app</url>
+      <url>https://maven.pkg.github.com/Ваш-Репозиторій/psy-app</url>
     </repository>
   </distributionManagement>
 
   <build>
     <plugins>
-      <!-- Static analysis. Fails the build when style violations are found. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -101,14 +92,13 @@
           </execution>
         </executions>
       </plugin>
-<!-- Runs the Spring Boot app with embedded web server: `mvn spring-boot:run` -->
+
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>2.5.4</version>
       </plugin>
-      
-      <!-- Allows running the CLI app from Maven: `mvn exec:java` -->
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -118,7 +108,41 @@
         </configuration>
       </plugin>
 
-      <!-- Collects test coverage and writes JaCoCo reports under target/site/jacoco -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <useModulePath>false</useModulePath>
+          <skipTests>${skipUnitTests}</skipTests>
+          <excludes>
+            <exclude>**/*IntegrationTests.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <useModulePath>false</useModulePath>
+          <skipITs>${skipIntegrationTests}</skipITs>
+          <includes>
+            <include>**/*IntegrationTests.java</include>
+          </includes>
+          <argLine>@{integrationTestsArgLine}</argLine>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -129,14 +153,47 @@
             <goals>
               <goal>prepare-agent</goal>
             </goals>
+            <configuration>
+              <skip>${skipUnitTests}</skip>
+            </configuration>
           </execution>
+
           <execution>
             <id>report</id>
             <phase>test</phase>
             <goals>
               <goal>report</goal>
             </goals>
+            <configuration>
+              <skip>${skipUnitTests}</skip>
+            </configuration>
           </execution>
+    
+          <execution>
+            <id>prepare-agent-integration</id>
+            <goals>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+            <configuration>
+              <skip>${skipIntegrationTests}</skip>
+              <destFile>${project.build.directory}/jacoco-integration-tests.exec</destFile>
+              <propertyName>integrationTestsArgLine</propertyName>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>report-integration</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-integration</goal>
+            </goals>
+            <configuration>
+              <skip>${skipIntegrationTests}</skip>
+              <dataFile>${project.build.directory}/jacoco-integration-tests.exec</dataFile>
+              <outputDirectory>${project.reporting.outputDirectory}/jacoco-integration-tests</outputDirectory>
+            </configuration>
+          </execution>
+
           <execution>
             <id>check</id>
             <phase>package</phase>
@@ -144,6 +201,7 @@
               <goal>check</goal>
             </goals>
             <configuration>
+              <skip>${skipUnitTests}</skip>
               <rules>
                 <rule>
                   <element>BUNDLE</element>
@@ -158,9 +216,49 @@
               </rules>
             </configuration>
           </execution>
+
+          <execution>
+            <id>check-integration</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <skip>${skipIntegrationTests}</skip>
+              <dataFile>${project.build.directory}/jacoco-integration-tests.exec</dataFile>
+              <rules>
+                <rule>
+                  <element>CLASS</element>
+                  <includes>
+                    <include>com.psy.PSession</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>1.0</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+                <rule>
+                  <element>CLASS</element>
+                  <includes>
+                    <include>com.psy.ScheduleController</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>1.0</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
-      <!-- Maven Release Plugin -->
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
@@ -172,45 +270,6 @@
           <goals>deploy</goals>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.12</version>
-        <executions>
-            <execution>
-                <goals>
-                    <goal>prepare-agent</goal>
-                </goals>
-            </execution>
-            <execution>
-                <id>report</id>
-                <phase>test</phase>
-                <goals>
-                    <goal>report</goal>
-                </goals>
-            </execution>
-            <execution>
-                <id>check</id>
-                <goals>
-                    <goal>check</goal>
-                </goals>
-                <configuration>
-                    <rules>
-                        <rule>
-                            <element>BUNDLE</element>
-                            <limits>
-                                <limit>
-                                    <counter>INSTRUCTION</counter>
-                                    <value>COVEREDRATIO</value>
-                                    <minimum>1.00</minimum>
-                                </limit>
-                            </limits>
-                        </rule>
-                    </rules>
-                </configuration>
-            </execution>
-        </executions>
-    </plugin>
     </plugins>
   </build>
 </project>

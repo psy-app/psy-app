@@ -1,11 +1,8 @@
 package com.psy;
 
-import com.opencsv.CSVReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,39 +35,6 @@ public class PsyApplication{
 
     public static void main(String[] args) {
         SpringApplication.run(PsyApplication.class, args);
-    }
-
-    private void addScheduleFromCsv() {
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getClass()
-        .getClassLoader().getResourceAsStream("psychology_sessions.csv")))) {
-            List<String[]> records = reader.readAll();
-            
-            records.remove(0); // Видалити перший рядок з назвами стовпців
-
-            List<PSession> scheduleList = new ArrayList<>();
-            for (String[] record : records) {
-                PSession schedule = new PSession(
-                    record[0], // clientName
-                    record[1], // psychologistName
-                    record[2], // sessionPackage
-                    record[3], // sessionTopic
-                    record[4], // MeetingPlatform
-                    record[5], // subscription
-                    record[6], // psyExperience
-                    record[7], // clinicAddress
-                    record[8], // clinicPhone
-                    record[9] // sessionDate
-);
-
-                scheduleList.add(schedule);
-            }
-            
-            psyRepository.saveAll(scheduleList);
-            System.out.println(scheduleList.size() + " документів з рядками з розкладу завантажено з CSV.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Не вдалось завантажити рядок розкладу з CSV.");
-        }
     }
 
     private void viewAllSchedules() {
