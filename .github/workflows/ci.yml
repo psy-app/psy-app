@@ -318,3 +318,13 @@ jobs:
       packages: write
     uses: ./.github/workflows/maven-publish.yml
     secrets: inherit
+
+    # Етап 6: опублікувати Docker-образ лише після успішного завершення етапу збірки
+  publish-docker:
+    name: Publish Docker Image
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-publish.yml
+    secrets: inherit
