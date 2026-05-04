@@ -1,0 +1,7 @@
+.git
+.github
+.vscode
+.devcontainer
+target
+README.md
+deploy/render.yaml
