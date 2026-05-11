@@ -1,0 +1,70 @@
+name: run-e2e-test
+
+on:
+  # Дозволяє викликати workflow з інших workflow, передаючи URL уже розгорнутого застосунку.
+  workflow_call:
+    inputs:
+      application_url:
+        description: Deployed application base URL for UI tests
+        required: true
+        type: string
+  # Дозволяє вручну запустити E2E UI-тести проти вказаного deployed URL.
+  workflow_dispatch:
+    inputs:
+      application_url:
+        description: Deployed application base URL for UI tests
+        required: true
+        type: string
+
+jobs:
+  # Виконує happy-path E2E UI-тести в Selenium Chromium проти вже розгорнутого застосунку.
+  e2e-ui-tests:
+    name: Run E2E UI Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      selenium:
+        image: selenium/standalone-chromium:latest
+        ports:
+          - 4444:4444
+
+    steps:
+      # Крок 1: отримання коду репозиторію з E2E тестами та Maven-конфігурацією.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Крок 2: налаштування Java та кешу Maven для запуску E2E UI тестів на runner.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # Крок 3: підготовка директорій для логів, screenshot і відео тестового прогону.
+      - name: Prepare artifact directories
+        shell: bash
+        run: mkdir -p target/ci-logs target/e2e-artifacts/videos target/e2e-artifacts/screenshots
+
+      # Крок 4: запуск bootstrap-скрипта `workflows/scripts/run-e2e-test.sh`,
+      # який створює Selenium session, отримує CDP URL і запускає `mvn -P e2e-ui`.
+      - name: Run E2E UI tests
+        shell: bash
+        env:
+          E2E_BASE_URL: ${{ inputs.application_url }}
+          E2E_ARTIFACTS_DIR: target/e2e-artifacts
+        run: |
+          chmod +x workflows/scripts/run-e2e-test.sh
+          workflows/scripts/run-e2e-test.sh
+
+      # Крок 5: завантаження E2E звітів, логів, screenshot і screencast як artifacts pipeline.
+      - name: Upload E2E reports and media
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-ui-test-artifacts
+          path: |
+            target/failsafe-reports/**
+            target/ci-logs/**
+            target/e2e-artifacts/**
+          if-no-files-found: warn
