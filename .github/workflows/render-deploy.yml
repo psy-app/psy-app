@@ -1,0 +1,148 @@
+name: Render Deploy
+
+on:
+  # Дозволяє викликати workflow з інших workflow, наприклад із CI для деплою з pull request.
+  workflow_call:
+
+  # Дозволяє вручну запустити деплой із вказаним тегом образу Docker-контейнера.
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Docker image tag to deploy from GHCR
+        required: false
+        default: latest
+        type: string
+
+  # Запускає деплой після успішного завершення workflow CI для гілки main.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  # Виконує деплой застосунку в Render із вказаним образом Docker-контейнера.
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    # Реальний деплой виконується для виклику з pull request, ручного запуску або після успішного CI в main.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    # Надає доступ до читання вмісту репозиторію.
+    permissions:
+      contents: read
+
+    steps:
+      # Крок 1: отримання коду для читання версії з pom.xml після workflow_run від CI в main.
+      - name: Checkout repository
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Крок 2: визначення адреси образу Docker-контейнера для деплою.
+      - name: Resolve deploy settings
+        id: settings
+        shell: bash
+        run: |
+          image_repo="ghcr.io/${{ github.repository_owner }}/psy-app"
+
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            # Для автодеплою після CI в main використовуємо версію з pom.xml.
+            version="$(grep -oPm1 '(?<=<version>)[^<]+' pom.xml | tr '[:upper:]' '[:lower:]')"
+            echo "image_url=${image_repo}:${version}" >> "$GITHUB_OUTPUT"
+
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Для виклику з CI в pull request формуємо тег у форматі pr-<номер PR>.
+            pr_number="${{ github.event.pull_request.number }}"
+            if [[ -z "$pr_number" ]]; then
+              # Якщо номер PR недоступний у контексті, деплой продовжувати не можна.
+              printf 'Unable to resolve pull request number for pull_request context.\n' >&2
+              exit 1
+            fi
+            echo "image_url=${image_repo}:pr-${pr_number}" >> "$GITHUB_OUTPUT"
+
+          else
+            # Для ручного запуску використовуємо тег, переданий через input image_tag.
+            echo "image_url=${image_repo}:${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Крок 3: перевірка наявності обов'язкових секретів GitHub Actions для Render.
+      - name: Validate Render secrets
+        shell: bash
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          missing=()
+
+          [[ -z "$RENDER_API_KEY" ]] && missing+=("RENDER_API_KEY")
+          [[ -z "$RENDER_SERVICE_ID" ]] && missing+=("RENDER_SERVICE_ID")
+
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing required GitHub Actions secrets: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      # Крок 4: запуск нового деплою в Render із заданим образом Docker-контейнера.
+      - name: Trigger Render deploy
+        id: deploy
+        shell: bash
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          IMAGE_URL: ${{ steps.settings.outputs.image_url }}
+        run: |
+          response="$(
+            curl --silent --show-error --fail-with-body \
+              --request POST \
+              --url "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+              --header "Authorization: Bearer ${RENDER_API_KEY}" \
+              --header "Content-Type: application/json" \
+              --data "$(jq -cn --arg imageUrl "$IMAGE_URL" '{imageUrl: $imageUrl}')"
+          )"
+
+          deploy_id="$(jq -r '.id // empty' <<<"$response")"
+          if [[ -z "$deploy_id" ]]; then
+            printf 'Render deploy response did not include a deploy id.\n%s\n' "$response" >&2
+            exit 1
+          fi
+
+          echo "deploy_id=${deploy_id}" >> "$GITHUB_OUTPUT"
+
+      # Крок 5: очікування завершення деплою та перевірка фінального статусу.
+      - name: Wait for Render deploy
+        shell: bash
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          DEPLOY_ID: ${{ steps.deploy.outputs.deploy_id }}
+        run: |
+          for attempt in {1..40}; do
+            response="$(
+              curl --silent --show-error --fail-with-body \
+                --request GET \
+                --url "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/${DEPLOY_ID}" \
+                --header "Authorization: Bearer ${RENDER_API_KEY}"
+            )"
+
+            status="$(jq -r '.status // empty' <<<"$response")"
+            printf 'Render deploy %s status: %s\n' "$DEPLOY_ID" "$status"
+
+            case "$status" in
+              live)
+                exit 0
+                ;;
+              build_failed|update_failed|canceled|cancelled|failed|deactivated)
+                printf 'Render deploy %s finished with failing status: %s\n' "$DEPLOY_ID" "$status" >&2
+                printf '%s\n' "$response" >&2
+                exit 1
+                ;;
+            esac
+
+            sleep 15
+          done
+
+          printf 'Timed out waiting for Render deploy %s to finish.\n' "$DEPLOY_ID" >&2
+          exit 1
