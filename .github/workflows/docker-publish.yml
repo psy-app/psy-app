@@ -53,10 +53,9 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/psy-app
           tags: |
             type=ref,event=branch
-            type=sha
+            type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request' }}
             type=raw,value=${{ steps.project-version.outputs.version }},enable={{is_default_branch}}
-            type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch && steps.project-version.outputs.publish_latest == 'true' }}
-
+            type=raw,value=latest,enable=${{ steps.project-version.outputs.publish_latest == 'true' }}
       # Крок 6: збирання та публікація образу Docker-контейнера.
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -66,3 +65,15 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Show published image addresses
+        shell: bash
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          {
+            echo "## Published Docker Images"
+            echo '```text'
+            printf '%s\n' "$IMAGE_TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
