@@ -131,5 +131,10 @@ log "Starting Maven E2E UI test run."
 
 # Запускаємо Maven-профіль E2E UI і одночасно пишемо консольний вивід у CI-лог.
 set -o pipefail
-mvn -B -P e2e-ui -Dcheckstyle.skip=true -DskipUnitTests=true -DskipIntegrationTests=true verify \
+mvn -B -P e2e-ui \
+  -Dcheckstyle.skip=true \
+  -DskipUnitTests=true \
+  -DskipIntegrationTests=true \
+  -De2e.base-url="${E2E_BASE_URL}" \
+  verify \
   | tee -a "$LOG_FILE"
