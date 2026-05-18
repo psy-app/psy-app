@@ -15,8 +15,10 @@
     <maven.compiler.target>17</maven.compiler.target>
     <project.scm.id>github</project.scm.id>
     <testcontainers.version>1.21.4</testcontainers.version>
+     <playwright.version>1.55.0</playwright.version>
     <skipUnitTests>false</skipUnitTests>
     <skipIntegrationTests>false</skipIntegrationTests>
+    <skipE2ETests>true</skipE2ETests>
   </properties>
 
   <scm>
@@ -26,7 +28,13 @@
     <tag>0.2.0</tag>
   </scm>
   
-  <dependencies>  
+  <dependencies> 
+    <dependency>
+        <groupId>com.microsoft.playwright</groupId>
+        <artifactId>playwright</artifactId>
+        <version>${playwright.version}</version>
+        <scope>test</scope>
+    </dependency> 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -117,6 +125,7 @@
           <skipTests>${skipUnitTests}</skipTests>
           <excludes>
             <exclude>**/*IntegrationTests.java</exclude>
+            <exclude>**/*E2ETests.java</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -131,6 +140,9 @@
           <includes>
             <include>**/*IntegrationTests.java</include>
           </includes>
+           <excludes>
+            <exclude>**/*E2ETests.java</exclude>
+          </excludes>
           <argLine>@{integrationTestsArgLine}</argLine>
         </configuration>
         <executions>
@@ -272,4 +284,37 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>e2e-ui</id>
+      <properties>
+        <skipE2ETests>false</skipE2ETests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>3.5.1</version>
+            <configuration>
+              <useModulePath>false</useModulePath>
+              <skipITs>${skipE2ETests}</skipITs>
+              <includes>
+                <include>**/*E2ETests.java</include>
+              </includes>
+            </configuration>
+            <executions>
+              <execution>
+                <id>run-e2e-ui-tests</id>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
