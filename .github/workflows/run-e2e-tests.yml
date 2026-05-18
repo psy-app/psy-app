@@ -1,4 +1,4 @@
-name: run-e2e-test
+name: run-e2e-tests
 
 on:
   # Дозволяє викликати workflow з інших workflow, передаючи URL уже розгорнутого застосунку.

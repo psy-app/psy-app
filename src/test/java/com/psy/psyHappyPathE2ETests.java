@@ -21,7 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class psyHappyPathE2ETests {
+class PsyHappyPathE2ETests {
 
     private static final String BASE_URL_PROPERTY = "e2e.base-url";
     private static final String BASE_URL_ENV = "E2E_BASE_URL";

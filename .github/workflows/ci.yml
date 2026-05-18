@@ -152,7 +152,7 @@ jobs:
         run: |
           mkdir -p target/ci-logs
           set -o pipefail
-          mvn -B -Dcheckstyle.skip=true -DskipIntegrationTests=true test | tee target/ci-logs/unit-tests.log
+          mvn -B -Dcheckstyle.skip=true -DskipIntegrationTests=true -DskipE2ETests=true test | tee target/ci-logs/unit-tests.log
 
       - name: Upload unit test reports
         if: always()
@@ -345,6 +345,6 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
-    uses: ./.github/workflows/run-e2e-test.yml
+    uses: ./.github/workflows/run-e2e-tests.yml
     with:
       application_url: ${{ needs.deploy-render-pr.outputs.application_url }}
