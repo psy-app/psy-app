@@ -69,7 +69,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.event.inputs.releaseVersion }}
-          name: College Schedule Application v${{ github.event.inputs.releaseVersion }}
+          name: psy-app Application v${{ github.event.inputs.releaseVersion }}
           body: ${{ steps.changelog.outputs.changelog }}
           draft: true
           prerelease: true
