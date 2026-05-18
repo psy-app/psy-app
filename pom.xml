@@ -140,6 +140,9 @@
           <includes>
             <include>**/*IntegrationTests.java</include>
           </includes>
+           <excludes>
+            <exclude>**/*E2ETests.java</exclude>
+          </excludes>
           <argLine>@{integrationTestsArgLine}</argLine>
         </configuration>
         <executions>
