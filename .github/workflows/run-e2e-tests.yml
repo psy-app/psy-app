@@ -54,8 +54,8 @@ jobs:
           E2E_BASE_URL: ${{ inputs.application_url }}
           E2E_ARTIFACTS_DIR: target/e2e-artifacts
         run: |
-          chmod +x workflows/scripts/run-e2e-test.sh
-          workflows/scripts/run-e2e-test.sh
+          chmod +x .github/workflows/scripts/run-e2e-test.sh
+          .github/workflows/scripts/run-e2e-test.sh
 
       # Крок 5: завантаження E2E звітів, логів, screenshot і screencast як artifacts pipeline.
       - name: Upload E2E reports and media
