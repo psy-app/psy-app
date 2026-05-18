@@ -18,7 +18,7 @@
      <playwright.version>1.55.0</playwright.version>
     <skipUnitTests>false</skipUnitTests>
     <skipIntegrationTests>false</skipIntegrationTests>
-    <skipE2ETests>false</skipE2ETests>
+    <skipE2ETests>true</skipE2ETests>
   </properties>
 
   <scm>
@@ -125,6 +125,7 @@
           <skipTests>${skipUnitTests}</skipTests>
           <excludes>
             <exclude>**/*IntegrationTests.java</exclude>
+            <exclude>**/*E2ETests.java</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -283,6 +284,9 @@
   <profiles>
     <profile>
       <id>e2e-ui</id>
+      <properties>
+        <skipE2ETests>false</skipE2ETests>
+      </properties>
       <build>
         <plugins>
           <plugin>
