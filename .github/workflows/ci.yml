@@ -310,40 +310,14 @@ jobs:
             target/site/jacoco-integration-tests/**
           if-no-files-found: warn    
   # Stage 3: публікація пакету після успішної збірки.       
-name: Publish Package
-
-on:
-  workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: true
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
+name: publish:
+    name: Publish Package
+    needs: build
     permissions:
       contents: read
       packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: maven
-          server-id: github
-          server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
-
-      - name: Publish package
-        run: mvn -B -Dcheckstyle.skip=true -DskipTests deploy
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/maven-publish.yml
+    secrets: inherit
 
     # Етап 6: опублікувати Docker-образ лише після успішного завершення етапу збірки
   publish-docker:
