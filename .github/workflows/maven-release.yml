@@ -5,10 +5,10 @@ on:
   workflow_dispatch:
     inputs:
       releaseVersion:
-        description: 'Release version (e.g., 0.2.0)'
+        description: 'Release version (e.g., 0.3.0)'
         required: true
       developmentVersion:
-        description: 'Next development version (e.g., 0.3.0-SNAPSHOT)'
+        description: 'Next development version (e.g., 0.4.0-SNAPSHOT)'
         required: true
 
 jobs:
@@ -37,10 +37,14 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
+          
+      - name: Sync Git Repository
+        run: |
+          git pull origin main --rebase
 
       - name: Prepare Release
         run: |
-          mvn release:prepare \
+          mvn release:clean release:prepare \
             -DreleaseVersion=${{ github.event.inputs.releaseVersion }} \
             -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }} \
             -DtagNameFormat="@{project.version}" \
@@ -48,6 +52,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Perform Release
+        
+        run: mvn release:perform -Darguments="-DskipTests -Dcheckstyle.skip=true"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Perform Release
         run: mvn release:perform
         env:
